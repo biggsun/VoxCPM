@@ -32,6 +32,9 @@ COPY . .
 
 RUN uv pip install --system -e .
 
+COPY docker/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
 ENV VOXCPM_CONFIG_PATH=/app/docker/config.yaml
 
 RUN mkdir -p /app/models /app/logs
@@ -41,4 +44,4 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=60s --start-period=300s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-CMD ["python3.10", "-m", "uvicorn", "server.app:app", "--host", "0.0.0.0", "--port", "8000"]
+ENTRYPOINT ["/app/entrypoint.sh"]

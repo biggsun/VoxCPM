@@ -1,6 +1,7 @@
 import os
 import sys
 import logging
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
@@ -9,6 +10,25 @@ from .config import config, load_config
 from .routes import speech_router, voices_router, models_router, health_router
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    setup_logging()
+    logger.info(f"VoxCPM TTS API starting on {config.server.host}:{config.server.port}")
+    logger.info(f"Model ID: {config.model.model_id}")
+    logger.info(f"Cache Dir: {config.model.cache_dir}")
+
+    from .routes.speech import load_model
+    logger.info("Loading VoxCPM model (this may take a few minutes)...")
+    load_model()
+    logger.info("VoxCPM model loaded successfully, server is ready")
+
+    yield
+
+    logger.info("VoxCPM TTS API shutting down")
 
 
 def setup_logging():
@@ -26,8 +46,9 @@ def create_app():
         version="1.0.0",
         docs_url="/docs",
         redoc_url="/redoc",
+        lifespan=lifespan,
     )
-    
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -35,18 +56,12 @@ def create_app():
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    
+
     app.include_router(speech_router, tags=["speech"])
     app.include_router(voices_router, tags=["voices"])
     app.include_router(models_router, tags=["models"])
     app.include_router(health_router, tags=["health"])
-    
-    @app.on_event("startup")
-    async def startup_event():
-        logging.info(f"VoxCPM TTS API starting on {config.server.host}:{config.server.port}")
-        logging.info(f"Model ID: {config.model.model_id}")
-        logging.info(f"Cache Dir: {config.model.cache_dir}")
-    
+
     return app
 
 

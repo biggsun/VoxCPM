@@ -1,10 +1,10 @@
 import io
 import logging
 import numpy as np
-from fastapi import APIRouter, Request
+from fastapi import APIRouter
 from fastapi.responses import StreamingResponse, Response
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional
 import soundfile as sf
 
 from ..config import config
@@ -16,7 +16,7 @@ router = APIRouter()
 voxcpm_model = None
 
 
-def get_model():
+def load_model():
     global voxcpm_model
     if voxcpm_model is None:
         import voxcpm
@@ -28,6 +28,12 @@ def get_model():
             cache_dir=config.model.cache_dir,
         )
         logger.info("VoxCPM model loaded successfully")
+    return voxcpm_model
+
+
+def get_model():
+    if voxcpm_model is None:
+        raise RuntimeError("Model not loaded. Server is still starting up.")
     return voxcpm_model
 
 
@@ -63,30 +69,35 @@ def build_control_instruction(voice: str, instructions: Optional[str]) -> str:
     return base_instruction
 
 
+def speed_to_cfg(speed: float) -> float:
+    if speed <= 0.25:
+        return 1.0
+    elif speed >= 4.0:
+        return 4.0
+    elif speed == 1.0:
+        return 2.0
+    else:
+        return 1.0 + (speed - 0.25) * (3.0 / 3.75)
+
+
 @router.post("/v1/audio/speech")
 async def create_speech(request: SpeechRequest):
     logger.info(f"Speech request: model={request.model}, voice={request.voice}, stream={request.stream}, input={request.input[:50]}...")
-    
+
     model = get_model()
-    
+
     control_instruction = build_control_instruction(request.voice, request.instructions or request.instruct)
-    
+
     text = request.input
     if control_instruction:
         text = f"({control_instruction}){text}"
-    
-    cfg_value = 2.0
-    if request.speed != 1.0:
-        if request.speed < 1.0:
-            cfg_value = 1.5
-        elif request.speed > 1.0:
-            cfg_value = 2.5
-    
+
+    cfg_value = speed_to_cfg(request.speed)
     inference_timesteps = 10
-    
+
     if request.stream:
         logger.info("Streaming mode enabled, returning PCM chunks")
-        
+
         def generate_pcm_stream():
             try:
                 for chunk in model.generate_streaming(
@@ -99,7 +110,7 @@ async def create_speech(request: SpeechRequest):
             except Exception as e:
                 logger.error(f"Error in streaming generation: {e}")
                 raise
-        
+
         return StreamingResponse(
             generate_pcm_stream(),
             media_type="application/octet-stream",
@@ -116,15 +127,15 @@ async def create_speech(request: SpeechRequest):
                 cfg_value=cfg_value,
                 inference_timesteps=inference_timesteps,
             )
-            
+
             audio_bytes = convert_response_format(
                 wav,
                 model.tts_model.sample_rate,
                 request.response_format
             )
-            
+
             content_type = "audio/mpeg" if request.response_format == "mp3" else f"audio/{request.response_format}"
-            
+
             return Response(
                 content=audio_bytes,
                 media_type=content_type,

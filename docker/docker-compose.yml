@@ -15,6 +15,7 @@ services:
     environment:
       - VOXCPM_CONFIG_PATH=/app/docker/config.yaml
       - NVIDIA_VISIBLE_DEVICES=all
+      - MODEL_ID=${MODEL_ID:-openbmb/VoxCPM2}
     deploy:
       resources:
         reservations:
