@@ -5,3 +5,4 @@ voxcpm.egg-info
 ./pretrained_models/
 app_local.py
 client-examples/openai-tts.go
+opencode.json
