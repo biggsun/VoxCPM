@@ -117,6 +117,10 @@ async def create_speech(request: SpeechRequest):
             headers={
                 "Content-Type": "audio/pcm",
                 "X-Content-Type-Options": "nosniff",
+                "X-Sample-Rate": str(model.tts_model.sample_rate),
+                "X-Bits-Per-Sample": "16",
+                "X-Channels": "1",
+                "X-Audio-Format": "pcm_s16le",
             }
         )
     else:
