@@ -1,0 +1,70 @@
+server:
+  host: "0.0.0.0"
+  port: 8901
+  workers: 1
+
+model:
+  model_id: "openbmb/VoxCPM2"
+  cache_dir: "/app/models"
+  load_denoiser: false
+  optimize: true
+
+audio:
+  sample_rate: 48000
+  default_voice: "default"
+  default_speed: 1.0
+  default_language: "Auto"
+
+voices:
+  preset:
+    - name: "default"
+      description: "Default voice"
+    - name: "alloy"
+      description: "Neutral voice, balanced and clear"
+    - name: "echo"
+      description: "Male voice, warm and conversational"
+    - name: "fable"
+      description: "British voice, expressive and storytelling"
+    - name: "onyx"
+      description: "Deep male voice, authoritative and confident"
+    - name: "nova"
+      description: "Female voice, friendly and energetic"
+    - name: "shimmer"
+      description: "Soft female voice, gentle and calm"
+
+languages:
+  - "Auto"
+  - "Arabic"
+  - "Burmese"
+  - "Chinese"
+  - "Danish"
+  - "Dutch"
+  - "English"
+  - "Finnish"
+  - "French"
+  - "German"
+  - "Greek"
+  - "Hebrew"
+  - "Hindi"
+  - "Indonesian"
+  - "Italian"
+  - "Japanese"
+  - "Khmer"
+  - "Korean"
+  - "Lao"
+  - "Malay"
+  - "Norwegian"
+  - "Polish"
+  - "Portuguese"
+  - "Russian"
+  - "Spanish"
+  - "Swahili"
+  - "Swedish"
+  - "Tagalog"
+  - "Thai"
+  - "Turkish"
+  - "Vietnamese"
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
