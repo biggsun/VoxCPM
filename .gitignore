@@ -6,3 +6,5 @@ voxcpm.egg-info
 app_local.py
 client-examples/openai-tts.go
 opencode.json
+docker/voices/
+docker/test_output/

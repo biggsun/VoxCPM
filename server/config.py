@@ -24,13 +24,9 @@ class AudioConfig(BaseModel):
     default_language: str = "Auto"
 
 
-class VoiceConfig(BaseModel):
-    name: str
-    description: str
-
-
 class VoicesConfig(BaseModel):
-    preset: List[VoiceConfig]
+    reference_dir: str = "/app/voices"
+    supported_extensions: List[str] = [".wav", ".mp3", ".flac", ".ogg"]
 
 
 class LoggingConfig(BaseModel):
@@ -57,15 +53,8 @@ def load_config(config_path: Optional[str] = None) -> AppConfig:
             "model": {"model_id": "openbmb/VoxCPM2", "cache_dir": "/app/models", "load_denoiser": False, "optimize": True},
             "audio": {"sample_rate": 48000, "default_voice": "default", "default_speed": 1.0, "default_language": "Auto"},
             "voices": {
-                "preset": [
-                    {"name": "default", "description": "Default voice"},
-                    {"name": "alloy", "description": "Neutral voice"},
-                    {"name": "echo", "description": "Male voice"},
-                    {"name": "fable", "description": "British voice"},
-                    {"name": "onyx", "description": "Deep male voice"},
-                    {"name": "nova", "description": "Female voice"},
-                    {"name": "shimmer", "description": "Soft female voice"}
-                ]
+                "reference_dir": "/app/voices",
+                "supported_extensions": [".wav", ".mp3", ".flac", ".ogg"],
             },
             "languages": ["Auto", "Chinese", "English", "Japanese", "Korean", "German", "French", "Spanish", "Russian", "Italian", "Portuguese", "Dutch", "Polish", "Turkish", "Arabic", "Hindi", "Indonesian", "Vietnamese", "Thai", "Malay", "Swedish", "Norwegian", "Danish", "Finnish", "Greek", "Hebrew", "Burmese", "Khmer", "Lao", "Swahili", "Tagalog"],
             "logging": {"level": "INFO", "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"}

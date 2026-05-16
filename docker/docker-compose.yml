@@ -12,6 +12,9 @@ services:
     volumes:
       - voxcpm-models:/app/models
       - ./config.yaml:/app/docker/config.yaml:ro
+      - ./../server:/app/server:ro
+      - ./../src:/app/src:ro
+      - ./voices:/app/voices:ro
     environment:
       - VOXCPM_CONFIG_PATH=/app/docker/config.yaml
       - NVIDIA_VISIBLE_DEVICES=all

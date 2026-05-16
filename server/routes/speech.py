@@ -1,4 +1,5 @@
 import io
+import os
 import logging
 import numpy as np
 from fastapi import APIRouter
@@ -49,24 +50,18 @@ class SpeechRequest(BaseModel):
     instruct: Optional[str] = None
 
 
-VOICE_DESCRIPTIONS = {
-    "default": "",
-    "alloy": "A neutral voice, balanced and clear",
-    "echo": "A warm male voice, conversational and friendly",
-    "fable": "A British voice, expressive and storytelling",
-    "onyx": "A deep male voice, authoritative and confident",
-    "nova": "A female voice, friendly and energetic",
-    "shimmer": "A soft female voice, gentle and calm",
-}
-
-
-def build_control_instruction(voice: str, instructions: Optional[str]) -> str:
-    base_instruction = VOICE_DESCRIPTIONS.get(voice, "")
-    if instructions:
-        if base_instruction:
-            return f"{base_instruction}, {instructions}"
-        return instructions
-    return base_instruction
+def resolve_reference_audio(voice: str) -> Optional[str]:
+    if voice == "default":
+        return None
+    ref_dir = config.voices.reference_dir
+    if not os.path.isdir(ref_dir):
+        return None
+    extensions = config.voices.supported_extensions
+    for ext in extensions:
+        candidate = os.path.join(ref_dir, voice + ext)
+        if os.path.isfile(candidate):
+            return candidate
+    return None
 
 
 def speed_to_cfg(speed: float) -> float:
@@ -86,11 +81,15 @@ async def create_speech(request: SpeechRequest):
 
     model = get_model()
 
-    control_instruction = build_control_instruction(request.voice, request.instructions or request.instruct)
+    reference_wav_path = resolve_reference_audio(request.voice)
+
+    if reference_wav_path is None and request.voice != "default":
+        logger.warning(f"Voice '{request.voice}' not found in reference directory, falling back to default")
 
     text = request.input
-    if control_instruction:
-        text = f"({control_instruction}){text}"
+    if request.instructions or request.instruct:
+        instruction = request.instructions or request.instruct
+        text = f"({instruction}){text}"
 
     cfg_value = speed_to_cfg(request.speed)
     inference_timesteps = 10
@@ -102,6 +101,7 @@ async def create_speech(request: SpeechRequest):
             try:
                 for chunk in model.generate_streaming(
                     text=text,
+                    reference_wav_path=reference_wav_path,
                     cfg_value=cfg_value,
                     inference_timesteps=inference_timesteps,
                 ):
@@ -128,6 +128,7 @@ async def create_speech(request: SpeechRequest):
         try:
             wav = model.generate(
                 text=text,
+                reference_wav_path=reference_wav_path,
                 cfg_value=cfg_value,
                 inference_timesteps=inference_timesteps,
             )
