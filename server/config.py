@@ -22,6 +22,7 @@ class AudioConfig(BaseModel):
     default_voice: str = "default"
     default_speed: float = 1.0
     default_language: str = "Auto"
+    seed: int = -1
 
 
 class VoicesConfig(BaseModel):
@@ -51,7 +52,7 @@ def load_config(config_path: Optional[str] = None) -> AppConfig:
         default_config = {
             "server": {"host": "0.0.0.0", "port": 8000, "workers": 1},
             "model": {"model_id": "openbmb/VoxCPM2", "cache_dir": "/app/models", "load_denoiser": False, "optimize": True},
-            "audio": {"sample_rate": 48000, "default_voice": "default", "default_speed": 1.0, "default_language": "Auto"},
+            "audio": {"sample_rate": 48000, "default_voice": "default", "default_speed": 1.0, "default_language": "Auto", "seed": -1},
             "voices": {
                 "reference_dir": "/app/voices",
                 "supported_extensions": [".wav", ".mp3", ".flac", ".ogg"],

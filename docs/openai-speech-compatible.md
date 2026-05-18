@@ -34,6 +34,7 @@ VoxCPM Server 提供兼容 OpenAI Audio Speech API 的 HTTP 接口，可通过 D
 | `language`      | string   | 否   | `"Auto"`   | 语言，`"Auto"` 自动检测，或指定语言名                   |
 | `instructions`  | string   | 否   | `null`     | 语音风格指令，与 voice 描述叠加                         |
 | `instruct`      | string   | 否   | `null`     | `instructions` 的别名，二者取其一即可                   |
+| `seed`          | int      | 否   | 配置文件值  | 随机种子，`-1` 不固定随机性，`>=0` 固定种子可复现       |
 
 #### voice 与 instructions 的关系
 
@@ -52,6 +53,18 @@ VoxCPM Server 提供兼容 OpenAI Audio Speech API 的 HTTP 接口，可通过 D
 | 4.0   | 4.0  |
 
 映射公式：当 `speed` 在 `(0.25, 4.0)` 区间时，`cfg = 1.0 + (speed - 0.25) * (3.0 / 3.75)`。
+
+#### seed 与可复现生成
+
+`seed` 参数控制音频生成的随机性，用于实现可复现的音色输出：
+
+| seed 值 | 行为                               |
+| ------- | ---------------------------------- |
+| `-1`    | 不固定随机种子，每次生成结果不同   |
+| `>= 0`  | 固定随机种子，相同输入可复现音色   |
+
+- 请求未指定 `seed` 时，使用服务配置文件 `audio.seed` 的值（默认 `-1`）。
+- 相同 `seed` + 相同输入文本 + 相同参考音频 = 可复现的音色输出。
 
 ### 非流式响应 (`stream: false`)
 
@@ -136,7 +149,8 @@ curl -X POST http://localhost:8000/v1/audio/speech \
     "input": "Hello, this is a test.",
     "voice": "alloy",
     "response_format": "mp3",
-    "speed": 1.0
+    "speed": 1.0,
+    "seed": 42
   }' \
   --output speech.mp3
 ```
@@ -287,3 +301,4 @@ docker compose up -d
 | voice 参数        | 内置音色                       | 内置音色 + instructions 叠加  |
 | 语言选择          | 无                             | 支持 30 种语言自动/手动切换   |
 | 声音克隆          | 不支持                         | 通过 `instructions` 或参考音频支持 |
+| 可复现生成        | 不支持                         | 通过 `seed` 参数支持可复现音色     |

@@ -14,6 +14,7 @@ audio:
   default_voice: "default"
   default_speed: 1.0
   default_language: "Auto"
+  seed: -1
 
 voices:
   reference_dir: "/app/voices"

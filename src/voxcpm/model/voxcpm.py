@@ -365,8 +365,9 @@ class VoxCPMModel(nn.Module):
         cfg_value: float = 2.0,
         retry_badcase: bool = False,
         retry_badcase_max_times: int = 3,
-        retry_badcase_ratio_threshold: float = 6.0,  # setting acceptable ratio of audio length to text length (for badcase detection)
+        retry_badcase_ratio_threshold: float = 6.0,
         streaming: bool = False,
+        seed: int = -1,
     ) -> Generator[torch.Tensor, None, None]:
         if retry_badcase and streaming:
             warnings.warn("Retry on bad cases is not supported in streaming mode, setting retry_badcase=False.")
@@ -461,10 +462,11 @@ class VoxCPMModel(nn.Module):
                 min_len=min_len,
                 max_len=min(
                     int(target_text_length * retry_badcase_ratio_threshold + 10), max_len
-                ),  # avoid too long audio
+                ),
                 inference_timesteps=inference_timesteps,
                 cfg_value=cfg_value,
                 streaming=streaming,
+                seed=seed if retry_badcase_times == 0 else seed + retry_badcase_times,
             )
             if streaming:
                 patch_len = self.patch_size * self.chunk_size
@@ -603,6 +605,7 @@ class VoxCPMModel(nn.Module):
         retry_badcase_ratio_threshold: float = 6.0,
         streaming: bool = False,
         streaming_prefix_len: int = 3,
+        seed: int = -1,
     ) -> Generator[Tuple[torch.Tensor, torch.Tensor, Union[torch.Tensor, List[torch.Tensor]]], None, None]:
         """
         Generate audio using pre-built prompt cache.
@@ -687,11 +690,12 @@ class VoxCPMModel(nn.Module):
                 min_len=min_len,
                 max_len=min(
                     int(target_text_length * retry_badcase_ratio_threshold + 10), max_len
-                ),  # avoid too long audio
+                ),
                 inference_timesteps=inference_timesteps,
                 cfg_value=cfg_value,
                 streaming=streaming,
                 streaming_prefix_len=streaming_prefix_len,
+                seed=seed if retry_badcase_times == 0 else seed + retry_badcase_times,
             )
             if streaming:
                 patch_len = self.patch_size * self.chunk_size
@@ -742,6 +746,7 @@ class VoxCPMModel(nn.Module):
         cfg_value: float = 2.0,
         streaming: bool = False,
         streaming_prefix_len: int = 3,
+        seed: int = -1,
     ) -> Generator[Tuple[torch.Tensor, Union[torch.Tensor, List[torch.Tensor]]], None, None]:
         """Core inference method for audio generation.
 
@@ -764,6 +769,10 @@ class VoxCPMModel(nn.Module):
                 - Predicted latent feature at the current step if ``streaming=True``, else final latent features
                 - Predicted audio feature sequence so far as a List if ``streaming=True``, else as a concatenated Tensor
         """
+        if seed >= 0:
+            torch.manual_seed(seed)
+            torch.cuda.manual_seed_all(seed)
+
         B, T, P, D = feat.shape
 
         prefill_encoder = getattr(self, "_feat_encoder_raw", self.feat_encoder)

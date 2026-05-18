@@ -48,6 +48,7 @@ class SpeechRequest(BaseModel):
     language: Optional[str] = "Auto"
     instructions: Optional[str] = None
     instruct: Optional[str] = None
+    seed: Optional[int] = None
 
 
 def resolve_reference_audio(voice: str) -> Optional[str]:
@@ -93,6 +94,7 @@ async def create_speech(request: SpeechRequest):
 
     cfg_value = speed_to_cfg(request.speed)
     inference_timesteps = 10
+    seed = request.seed if request.seed is not None else config.audio.seed
 
     if request.stream:
         logger.info("Streaming mode enabled, returning PCM chunks")
@@ -104,6 +106,7 @@ async def create_speech(request: SpeechRequest):
                     reference_wav_path=reference_wav_path,
                     cfg_value=cfg_value,
                     inference_timesteps=inference_timesteps,
+                    seed=seed,
                 ):
                     pcm_bytes = numpy_to_pcm_bytes(chunk, model.tts_model.sample_rate)
                     yield pcm_bytes
@@ -131,6 +134,7 @@ async def create_speech(request: SpeechRequest):
                 reference_wav_path=reference_wav_path,
                 cfg_value=cfg_value,
                 inference_timesteps=inference_timesteps,
+                seed=seed,
             )
 
             audio_bytes = convert_response_format(

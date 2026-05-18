@@ -193,6 +193,7 @@ class VoxCPM:
         retry_badcase_max_times: int = 3,
         retry_badcase_ratio_threshold: float = 6.0,
         streaming: bool = False,
+        seed: int = -1,
     ) -> Generator[np.ndarray, None, None]:
         """Synthesize speech for the given text and return a single waveform.
 
@@ -291,6 +292,7 @@ class VoxCPM:
                 retry_badcase_max_times=retry_badcase_max_times,
                 retry_badcase_ratio_threshold=retry_badcase_ratio_threshold,
                 streaming=streaming,
+                seed=seed,
             )
 
             if streaming:

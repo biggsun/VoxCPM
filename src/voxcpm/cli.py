@@ -258,6 +258,7 @@ def _run_single(args, parser, *, text: str, output: str, prompt_text: str | None
         reference_wav_path=args.reference_audio,
         cfg_value=args.cfg_value,
         inference_timesteps=args.inference_timesteps,
+        seed=args.seed,
         normalize=args.normalize,
         denoise=args.denoise
         and (args.prompt_audio is not None or args.reference_audio is not None),
@@ -345,6 +346,7 @@ def cmd_batch(args, parser):
                 reference_wav_path=reference_audio_path,
                 cfg_value=args.cfg_value,
                 inference_timesteps=args.inference_timesteps,
+                seed=args.seed,
                 normalize=args.normalize,
                 denoise=args.denoise
                 and (prompt_audio_path is not None or reference_audio_path is not None),
@@ -386,6 +388,12 @@ def _add_common_generation_args(parser):
         type=int,
         default=10,
         help="Inference steps (int, recommended 4–30, default: 10)",
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=-1,
+        help="Random seed for reproducible generation (-1 = random, default: -1)",
     )
     parser.add_argument(
         "--normalize", action="store_true", help="Enable text normalization"
@@ -544,6 +552,12 @@ Examples:
         type=int,
         default=10,
         help="Inference steps (int, recommended 4–30, default: 10)",
+    )
+    batch_parser.add_argument(
+        "--seed",
+        type=int,
+        default=-1,
+        help="Random seed for reproducible generation (-1 = random, default: -1)",
     )
     batch_parser.add_argument(
         "--normalize", action="store_true", help="Enable text normalization"

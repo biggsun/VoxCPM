@@ -267,6 +267,7 @@ class VoxCPMDemo:
             inference_timesteps=inference_timesteps,
             normalize=do_normalize,
             denoise=denoise,
+            seed=-1,
         )
         if prompt_text_clean and audio_path:
             generate_kwargs["prompt_wav_path"] = audio_path
