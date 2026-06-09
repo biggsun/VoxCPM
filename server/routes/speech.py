@@ -1,3 +1,4 @@
+import asyncio
 import io
 import os
 import logging
@@ -15,6 +16,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 voxcpm_model = None
+_inference_lock = asyncio.Lock()
 
 
 def load_model():
@@ -99,20 +101,21 @@ async def create_speech(request: SpeechRequest):
     if request.stream:
         logger.info("Streaming mode enabled, returning PCM chunks")
 
-        def generate_pcm_stream():
-            try:
-                for chunk in model.generate_streaming(
-                    text=text,
-                    reference_wav_path=reference_wav_path,
-                    cfg_value=cfg_value,
-                    inference_timesteps=inference_timesteps,
-                    seed=seed,
-                ):
-                    pcm_bytes = numpy_to_pcm_bytes(chunk, model.tts_model.sample_rate)
-                    yield pcm_bytes
-            except Exception as e:
-                logger.error(f"Error in streaming generation: {e}")
-                raise
+        async def generate_pcm_stream():
+            async with _inference_lock:
+                try:
+                    for chunk in model.generate_streaming(
+                        text=text,
+                        reference_wav_path=reference_wav_path,
+                        cfg_value=cfg_value,
+                        inference_timesteps=inference_timesteps,
+                        seed=seed,
+                    ):
+                        pcm_bytes = numpy_to_pcm_bytes(chunk, model.tts_model.sample_rate)
+                        yield pcm_bytes
+                except Exception as e:
+                    logger.error(f"Error in streaming generation: {e}")
+                    raise
 
         return StreamingResponse(
             generate_pcm_stream(),
@@ -128,30 +131,31 @@ async def create_speech(request: SpeechRequest):
         )
     else:
         logger.info("Non-streaming mode, returning full audio")
-        try:
-            wav = model.generate(
-                text=text,
-                reference_wav_path=reference_wav_path,
-                cfg_value=cfg_value,
-                inference_timesteps=inference_timesteps,
-                seed=seed,
-            )
+        async with _inference_lock:
+            try:
+                wav = model.generate(
+                    text=text,
+                    reference_wav_path=reference_wav_path,
+                    cfg_value=cfg_value,
+                    inference_timesteps=inference_timesteps,
+                    seed=seed,
+                )
 
-            audio_bytes = convert_response_format(
-                wav,
-                model.tts_model.sample_rate,
-                request.response_format
-            )
+                audio_bytes = convert_response_format(
+                    wav,
+                    model.tts_model.sample_rate,
+                    request.response_format
+                )
 
-            content_type = "audio/mpeg" if request.response_format == "mp3" else f"audio/{request.response_format}"
+                content_type = "audio/mpeg" if request.response_format == "mp3" else f"audio/{request.response_format}"
 
-            return Response(
-                content=audio_bytes,
-                media_type=content_type,
-                headers={
-                    "Content-Disposition": f"attachment; filename=speech.{request.response_format}"
-                }
-            )
-        except Exception as e:
-            logger.error(f"Error in non-streaming generation: {e}")
-            raise
+                return Response(
+                    content=audio_bytes,
+                    media_type=content_type,
+                    headers={
+                        "Content-Disposition": f"attachment; filename=speech.{request.response_format}"
+                    }
+                )
+            except Exception as e:
+                logger.error(f"Error in non-streaming generation: {e}")
+                raise
